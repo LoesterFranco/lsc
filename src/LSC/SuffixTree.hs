@@ -20,6 +20,7 @@ import Data.Vector
   )
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Algorithms.Insertion as Insertion
+import qualified Data.Vector.Algorithms.Intro as Intro
 import qualified Data.Vector.Algorithms.Radix as Radix
 import qualified Data.Vector.Algorithms.Tim as Tim
 import Data.Vector.Algorithms.Radix (radix)
@@ -179,12 +180,12 @@ radixSortBy f v = runST $ do
 suffixArraySortBy :: (a -> a -> Ordering) -> Vector a -> Vector a
 suffixArraySortBy f v = runST $ do
   m <- thaw v
-  Tim.sortBy f m
+  Intro.sortBy f m
   unsafeFreeze m 
 
 
 insertionSortBy :: (a -> a -> Ordering) -> Vector a -> Vector a
 insertionSortBy f v = runST $ do
   m <- thaw v
-  Insertion.sortBy f m
+  Intro.sortBy f m
   unsafeFreeze m 
