@@ -51,10 +51,11 @@ exline suffixTree (k : ks) top@(NetGraph name pins subs nodes edges)
 
     ((len, pos@(p1 : _), _) : _) = isomorphicGates
     isomorphicGates
-      = filter ( \ (l, p : _, _) -> primitive `all` slice p l nodes)
+      = sortBy ( \ (l, _, x) (m, _, y) -> compare (y, m) (x, l))
+      $ take 4
+      $ filter ( \ (l, p : _, _) -> primitive `all` slice p l nodes)
       $ filter ( \ (_, _, score) -> score > 0)
       $ fmap (rescore nodes)
-      $ sortBy ( \ (l, _, x) (m, _, y) -> compare (y, m) (x, l)) 
       $ maximalRepeatsDisjoint suffixTree (hash . gateIdent) k
 
     primitive g = name /= T.take (T.length name) (gateIdent g)
@@ -180,7 +181,7 @@ scopeWires nodes = Map.fromList $ reverse
 
 
 wireName :: (Int, (Wire, Gate)) -> Text
-wireName (i, (k, _)) = k <> pack "_" <> showt i
+wireName (i, (k, _)) = k <> showt i
 
 
 buildName :: (Functor f, Foldable f) => f Gate -> Identifier
