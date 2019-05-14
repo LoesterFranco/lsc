@@ -31,7 +31,7 @@ import LSC.Version
 
 stage1 :: Compiler' NetGraph
 stage1 = zeroArrow
-  <+> local (exline 4) >>> func treeStructure
+  <+> local (exline 16) >>> func treeStructure
 
 
 

@@ -43,7 +43,7 @@ matchingRatio :: Rational
 matchingRatio = 1 % 3
 
 coarseningThreshold :: Int
-coarseningThreshold = 8
+coarseningThreshold = 16
 
 
 balanceFactor :: Rational
