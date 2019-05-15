@@ -33,9 +33,9 @@ routeInteger top = do
   netlist <- contactGeometry top
 
   debug
-    [ "start routeInteger @ module", netlist ^. identifier & unpack
-    , "-", netlist ^. gates & length & show, "gates"
-    , "-", netlist ^. nets & length & show, "nets"
+    [ "start routeInteger @ module " <> netlist ^. identifier . to unpack
+    , netlist ^. gates . to length . to show <> " gates"
+    , netlist ^. nets . to length . to show <> " nets"
     ]
 
   area <- freeRectangle
@@ -51,11 +51,11 @@ routeInteger top = do
   placement area ring rim
 
   disjointGates nodes
-  disjointNets edges
+  -- disjointNets edges
 
   result <- satisfyInteger
 
-  debug ["stop  routeInteger @ module", netlist ^. identifier & unpack]
+  debug ["stop routeInteger @ module " <> netlist ^. identifier . to unpack]
 
   maybe (pure netlist) pure $ do
 
@@ -83,34 +83,10 @@ powerUpAndGround :: INodes -> IEdges -> LSC (IRing, IPath, IPath)
 powerUpAndGround nodes edges = do
 
   (w, h) <- view standardPin <$> technology
-  rows <- divideArea nodes
-
-  grid <- sequence
-    [ do
-      p <- liftInteger general
-      liftInteger $ do
-        p >=^ x
-        p <=^ x + 8000
-      freeRectangle
-        <&> l .~ p
-        <&> r .~ (p + literal w)
-        <&> integrate [Metal2, Metal3]
-    | x <- literal <$> rows
-    ]
-
-  sequence_
-    [ liftInteger $ do
-        head grid ^. t =^ path ^. t
-        head grid ^. b =^ path ^. b
-    | path <- init $ tail $ grid
-    ]
 
   ring <- freeRing
 
   liftInteger $ do
-
-    head grid `equivalent` view l ring
-    last grid `equivalent` view r ring
 
     ring ^. l . to width =^ literal w
     ring ^. r . to width =^ literal w
@@ -124,8 +100,6 @@ powerUpAndGround nodes edges = do
     [ do
 
       path `inside` inner ring
-
-      sequence_ $ disjoint path <$> grid
 
       vdd_ <- integrate [Metal1] <$> freeWirePolygon
       gnd_ <- integrate [Metal1] <$> freeWirePolygon
@@ -146,23 +120,6 @@ powerUpAndGround nodes edges = do
 
       sequence_ [ disjoint sig gnd_ *> disjoint sig vdd_ | sig <- signals ]
 
-
-      liftInteger $ choice $
-        [ p ^. l =^ g ^. l
-        | p <- init grid
-        ] ++
-        [ outer ring ^. t =^ g ^. t
-        , outer ring ^. b =^ g ^. b
-        ]
-
-      liftInteger $ choice $
-        [ p ^. l =^ v ^. l
-        | p <- init grid
-        ] ++
-        [ outer ring ^. t =^ v ^. t
-        , outer ring ^. b =^ v ^. b
-        ]
-
       pure ([v, vdd_], [g, gnd_])
 
     | (gate, path) <- toList nodes
@@ -170,8 +127,8 @@ powerUpAndGround nodes edges = do
     , let gs = gate ^. gnd . ports <&> pinComponent path
     ]
 
-  let power  = join vs ++ [ integrate [Metal2] p | p <- toList ring ++ grid ]
-      ground = join gs ++ [ integrate [Metal3] p | p <- toList ring ++ grid ]
+  let power  = join vs ++ [ integrate [Metal2] p | p <- toList ring ]
+      ground = join gs ++ [ integrate [Metal3] p | p <- toList ring ]
 
   sequence_
     [ disjoint v p
