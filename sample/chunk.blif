@@ -1,0 +1,22 @@
+
+.model picorv32---_-_-_-
+.inputs $abc$31389$n10158_1 $abc$31389$n10436 $abc$31389$n3322_1 $abc$31389$n3347_1 $abc$31389$n3564 $abc$31389$n3788 $abc$31389$n8763 $abc$31389$n8771 $abc$31389$n9028 $abc$31389$n9088 $abc$31389$n9148 clk
+.outputs $abc$31389$n9017 $abc$31389$n9018_1 $abc$31389$n9066 $abc$31389$n9132_1 mem_addr[9]
+.subckt NAND2X1 A=reg_next_pc[14] B=$abc$31389$n3347_1 Y=$abc$31389$n9016_1
+.subckt OAI21X1 A=$abc$31389$n8771 B=$abc$31389$n3564 C=reg_next_pc[14] Y=$abc$31389$n9017
+.subckt OAI21X1 A=$abc$31389$n8763 B=$abc$31389$n3788 C=$abc$31389$n9017 Y=$abc$31389$n9018_1
+.subckt AOI21X1 A=$abc$31389$n9028 B=$abc$31389$n9016_1 C=$abc$31389$n3322_1 Y=$0\reg_next_pc[31:0][14]
+.subckt NAND2X1 A=reg_next_pc[17] B=$abc$31389$n3347_1 Y=$abc$31389$n9065
+.subckt OAI21X1 A=$abc$31389$n8771 B=$abc$31389$n3564 C=reg_next_pc[17] Y=$abc$31389$n9066
+.subckt AOI21X1 A=$abc$31389$n9088 B=$abc$31389$n9065 C=$abc$31389$n3322_1 Y=$0\reg_next_pc[31:0][17]
+.subckt NAND2X1 A=reg_next_pc[20] B=$abc$31389$n3347_1 Y=$abc$31389$n9131
+.subckt OAI21X1 A=$abc$31389$n8771 B=$abc$31389$n3564 C=reg_next_pc[20] Y=$abc$31389$n9132_1
+.subckt AOI21X1 A=$abc$31389$n9148 B=$abc$31389$n9131 C=$abc$31389$n3322_1 Y=$0\reg_next_pc[31:0][20]
+.subckt NAND2X1 A=mem_addr[9] B=$abc$31389$n10158_1 Y=$abc$31389$n10437_1
+.subckt OAI21X1 A=$abc$31389$n10158_1 B=$abc$31389$n10436 C=$abc$31389$n10437_1 Y=$0\mem_addr[31:0][9]
+.subckt DFFPOSX1 CLK=clk D=$0\reg_next_pc[31:0][14] Q=reg_next_pc[14]
+.subckt DFFPOSX1 CLK=clk D=$0\reg_next_pc[31:0][17] Q=reg_next_pc[17]
+.subckt DFFPOSX1 CLK=clk D=$0\reg_next_pc[31:0][20] Q=reg_next_pc[20]
+.subckt DFFPOSX1 CLK=clk D=$0\mem_addr[31:0][9] Q=mem_addr[9]
+.end
+

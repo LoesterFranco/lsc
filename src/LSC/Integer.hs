@@ -26,6 +26,9 @@ import Control.MILP.Types
 import LSC.Synthesis
 import LSC.Types
 
+import LSC.Integer.SModel
+
+
 
 routeInteger :: NetGraph -> LSC NetGraph
 routeInteger top = do
@@ -53,7 +56,7 @@ routeInteger top = do
   disjointGates nodes
   disjointNets edges
 
-  result <- satisfyInteger
+  result <- minimizeInteger
 
   debug ["stop  routeInteger @ module", netlist ^. identifier & unpack]
 
