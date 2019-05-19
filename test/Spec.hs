@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -152,6 +153,7 @@ blifHypergraph netlist = inputRoutine
     [ (n, c)
     | (n, w) <- zip [0..] $ toList $ top ^. nets
     , (c, _) <- w ^. contacts . to assocs
+    , w ^. identifier /= "clk"
     ] where top = fromBLIF netlist
 
 

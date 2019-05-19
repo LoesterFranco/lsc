@@ -381,10 +381,11 @@ fiducciaMattheyses (v, e)
 bipartition :: (V, E) -> Bipartitioning -> FM s Bipartitioning
 bipartition (v, e) p = do
 
-  update freeCells $ const $ fromAscList [0 .. length v - 1]
   update moves $ const mempty
 
   initialGains (v, e) p
+  update freeCells $ const $ fromAscList [0 .. length v - 1]
+
   processCell (v, e) p
 
   (g, q) <- computeG p
@@ -518,11 +519,15 @@ modifyGain f c = do
 initialGains :: (V, E) -> Bipartitioning -> FM s ()
 initialGains (v, e) p = do
 
-  let nodes = flip imap v $ \ i ns ->
+  free <- value freeCells
+
+  let nodes = flip imap v $ \ i ns -> if member i free
+        then
         let f = fromBlock p i e
             t = toBlock p i e
          in size (S.filter (\ n -> size (f n) == 1) ns)
           - size (S.filter (\ n -> size (t n) == 0) ns)
+        else 0
 
   let gmax = foldMap singleton nodes
 
