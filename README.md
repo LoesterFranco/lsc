@@ -41,6 +41,10 @@
 
 ## References
 
+### LSC.FastDP
+
+- Min Pan, N. Viswanathan, C. Chu (2005): An efficient and effective detailed placement algorithm [10.1109/iccad.2005.1560039](https://doi.org/10.1109/iccad.2005.1560039)
+
 ### LSC.FM
 
 - Fiduccia, et. al. (1982): A Linear-Time Heuristic for Improving Network Partitions [10.1109/dac.1982.1585498](https://doi.org/10.1109/dac.1982.1585498)

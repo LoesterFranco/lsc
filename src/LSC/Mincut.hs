@@ -259,7 +259,7 @@ placeMatrix m = do
 
 
 
-hypergraph :: Vector Gate -> Map Identifier Net -> ST s (V, E)
+hypergraph :: (Foldable f, Foldable g) => f Gate -> g Net -> ST s (V, E)
 hypergraph v e = inputRoutine (length e) (length v)
     [ (n, c)
     | (n, w) <- zip [0..] $ toList e
