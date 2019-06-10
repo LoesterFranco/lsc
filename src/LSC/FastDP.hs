@@ -1,14 +1,14 @@
+{-# LANGUAGE TemplateHaskell #-}
 
 module LSC.FastDP where
 
-import Control.Lens hiding (imap)
+import Control.Lens hiding (indices)
 import Control.Monad.ST
 import Control.Monad.Reader
 import Data.Foldable
 import Data.IntSet (size, elems, delete)
 import Data.Matrix hiding ((!), fromList, toList)
-import Data.Map (fromList)
-import Data.Vector (Vector, fromListN, (!), unzip, freeze, imap)
+import Data.Vector (Vector, fromListN, (!), unzip, freeze)
 import Data.Vector.Mutable hiding (length)
 
 import Prelude hiding (read, unzip, length)
@@ -28,10 +28,19 @@ type Bounding s = MVector s Rectangle
 type RowMatrix s = MVector s Int
 
 
-type DP s = ReaderT (Position s, RowMatrix s, Int) (ST s)
+data MatrixState s = MatrixState
+    { _positions :: MVector s Cartesian
+    , _indices   :: MVector s Int
+    , _rowSize   :: Int
+    }
+
+makeLenses ''MatrixState
 
 
-thawPositions :: Matrix Int -> ST s (Position s, RowMatrix s, Int)
+type DP s = ReaderT (MatrixState s) (ST s)
+
+
+thawPositions :: Matrix Int -> ST s (MatrixState s)
 thawPositions m = do
   p <- new $ succ $ maximum m
   q <- new $ nrows m * ncols m
@@ -43,20 +52,20 @@ thawPositions m = do
     , j <- [1 .. ncols m]
     , let x = getElem i j m
     ]
-  pure (p, q, nrows m)
+  pure $ MatrixState p q (nrows m)
 
 
 
 readPos :: Int -> DP s Cartesian
 readPos c = do
-    (p, _, _) <- ask
+    p <- view positions <$> ask
     read p c
 
 
 
 writePos :: Int -> Cartesian -> DP s ()
 writePos c (i, j) = do
-    (p, q, k) <- ask
+    MatrixState p q k <- ask
     write p c (i, j)
     write q (i * k + j) c
 
@@ -64,7 +73,7 @@ writePos c (i, j) = do
 
 swapPos :: Int -> Int -> DP s ()
 swapPos i j = do
-    (p, q, k) <- ask
+    MatrixState p q k <- ask
     swap p i j
     (vi, vj) <- read p i
     (wi, wj) <- read p j
@@ -74,7 +83,7 @@ swapPos i j = do
 
 moveTo :: Int -> (Int, Int) -> DP s ()
 moveTo i (x, y) = do
-    (p, q, k) <- ask
+    MatrixState p q k <- ask
     j <- read q (x * k + y)
     if j < 0
       then do
@@ -109,7 +118,8 @@ median rs =
 
 positionMatrix :: Matrix Int -> DP s (Matrix Int)
 positionMatrix m = do
-    (_, q, k) <- ask
+    q <- view indices <$> ask
+    k <- view rowSize <$> ask
     v <- freeze q
     pure $ matrix (nrows m) (ncols m) $ \ (i, j) -> v ! (pred i * k + pred j)
 
