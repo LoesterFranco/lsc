@@ -42,26 +42,31 @@ makeLenses ''MatrixState
 type DP s = ReaderT (Gen s, MatrixState s) (ST s)
 
 
-fastDP_rnd :: (V, E) -> Matrix Int -> IO (Matrix Int)
-fastDP_rnd (v, e) m = do
+nonDeterministicFastDP :: (V, E) -> Matrix Int -> IO (Matrix Int)
+nonDeterministicFastDP (v, e) m = do
   u <- entropyVector32 258
   stToIO $ do
-    s <- (,) <$> initialize u <*> thawPositions m
-    flip runReaderT s $ do
-      for_ [1 .. 10000] $ \ _ -> do
-        globalSwap   (v, e) =<< uniformR (0, length v - 1) =<< prng
-        verticalSwap (v, e) =<< uniformR (0, length v - 1) =<< prng
-      positionMatrix m
+    s <- (,) <$> initialize u <*> thawMatrix m
+    runReaderT (fastDP (v, e) m) s
 
 
-fastDP :: (V, E) -> Matrix Int -> ST s (Matrix Int)
+
+deterministicFastDP :: (V, E) -> Matrix Int -> ST s (Matrix Int)
+deterministicFastDP (v, e) m = do
+  s <- (,) <$> create <*> thawMatrix m
+  runReaderT (fastDP (v, e) m) s
+
+
+
+fastDP :: (V, E) -> Matrix Int -> DP s (Matrix Int)
 fastDP (v, e) m = do
-  s <- (,) <$> create <*> thawPositions m
-  flip runReaderT s $ do
-    for_ [1 .. 10000] $ \ _ -> do
-      globalSwap   (v, e) =<< uniformR (0, length v - 1) =<< prng
-      verticalSwap (v, e) =<< uniformR (0, length v - 1) =<< prng
-    positionMatrix m
+  for_ [1 .. 10000] $ \ _ -> do
+    globalSwap   (v, e) =<< rnd 
+    verticalSwap (v, e) =<< rnd
+    localReordering (v, e)
+  freezeDP m
+  where rnd = uniformR (0, length v - 1) =<< prng
+
 
 
 prng :: DP s (Gen s)
@@ -69,8 +74,8 @@ prng = fst <$> ask
 
 
 
-thawPositions :: Matrix Int -> ST s (MatrixState s)
-thawPositions m = do
+thawMatrix :: Matrix Int -> ST s (MatrixState s)
+thawMatrix m = do
   p <- new $ succ $ maximum m
   q <- new $ nrows m * ncols m
   sequence_
@@ -145,8 +150,8 @@ median rs =
 
 
 
-positionMatrix :: Matrix Int -> DP s (Matrix Int)
-positionMatrix m = do
+freezeDP :: Matrix Int -> DP s (Matrix Int)
+freezeDP m = do
     q <- view indices . snd <$> ask
     k <- view rowSize . snd <$> ask
     v <- freeze q
@@ -173,6 +178,8 @@ verticalSwap (v, e) c = do
 
 
 
-localReordering :: (V, E) -> Int -> Matrix Int -> Matrix Int
-localReordering = undefined
+localReordering :: (V, E) -> DP s ()
+localReordering (v, e) = do
+    q <- view indices . snd <$> ask
+    pure ()
 

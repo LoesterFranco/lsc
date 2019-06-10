@@ -28,7 +28,7 @@ import qualified Data.Vector as V
 import Prelude hiding (concat, lookup, read, unzip)
 
 import LSC.Improve
-import LSC.FastDP (fastDP_rnd)
+import LSC.FastDP
 import LSC.FM as FM
 import LSC.NetGraph
 import LSC.Types hiding (thaw)
@@ -72,7 +72,7 @@ placeQuad top = do
     estimationsMatrix m
     let fast dp = liftIO $ do
           by <- stToIO $ hypergraph (top ^. gates) (top ^. nets)
-          result <- fastDP_rnd by $ view number <$> dp
+          result <- nonDeterministicFastDP by $ view number <$> dp
           pure $ (\ x -> maybe def id $ view gates top ^? ix x) <$> result
     estimationsMatrix =<< fast m
     estimationsMatrix =<< fast m
