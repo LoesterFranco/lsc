@@ -28,7 +28,7 @@ import qualified Data.Vector as V
 import Prelude hiding (concat, lookup, read, unzip)
 
 import LSC.Improve
-import LSC.FastDP (fastDP)
+import LSC.FastDP (fastDP_rnd)
 import LSC.FM as FM
 import LSC.NetGraph
 import LSC.Types hiding (thaw)
@@ -70,11 +70,12 @@ placeQuad top = do
     m <- placeMatrix  . transpose . centerColumns . transpose =<< initialMatrix top
 
     estimationsMatrix m
-    let fast dp = runST $ do
-          by <- hypergraph (top ^. gates) (top ^. nets)
-          result <- fastDP by $ view number <$> dp
+    let fast dp = liftIO $ do
+          by <- stToIO $ hypergraph (top ^. gates) (top ^. nets)
+          result <- fastDP_rnd by $ view number <$> dp
           pure $ (\ x -> maybe def id $ view gates top ^? ix x) <$> result
-    estimationsMatrix $ head $ drop 100 $ iterate fast m
+    estimationsMatrix =<< fast m
+    estimationsMatrix =<< fast m
 
     cells <- view stdCells <$> technology
 

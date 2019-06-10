@@ -10,9 +10,11 @@ import Data.IntSet (size, elems, delete)
 import Data.Matrix hiding ((!), fromList, toList)
 import Data.Vector (Vector, fromListN, (!), unzip, freeze)
 import Data.Vector.Mutable hiding (length)
+import System.Random.MWC
 
 import Prelude hiding (read, unzip, length)
 
+import LSC.Entropy
 import LSC.Median
 import LSC.Types (V, E, Component(..), l, b, r, t)
 
@@ -37,7 +39,34 @@ data MatrixState s = MatrixState
 makeLenses ''MatrixState
 
 
-type DP s = ReaderT (MatrixState s) (ST s)
+type DP s = ReaderT (Gen s, MatrixState s) (ST s)
+
+
+fastDP_rnd :: (V, E) -> Matrix Int -> IO (Matrix Int)
+fastDP_rnd (v, e) m = do
+  u <- entropyVector32 258
+  stToIO $ do
+    s <- (,) <$> initialize u <*> thawPositions m
+    flip runReaderT s $ do
+      for_ [1 .. 10000] $ \ _ -> do
+        globalSwap   (v, e) =<< uniformR (0, length v - 1) =<< prng
+        verticalSwap (v, e) =<< uniformR (0, length v - 1) =<< prng
+      positionMatrix m
+
+
+fastDP :: (V, E) -> Matrix Int -> ST s (Matrix Int)
+fastDP (v, e) m = do
+  s <- (,) <$> create <*> thawPositions m
+  flip runReaderT s $ do
+    for_ [1 .. 10000] $ \ _ -> do
+      globalSwap   (v, e) =<< uniformR (0, length v - 1) =<< prng
+      verticalSwap (v, e) =<< uniformR (0, length v - 1) =<< prng
+    positionMatrix m
+
+
+prng :: DP s (Gen s)
+prng = fst <$> ask
+
 
 
 thawPositions :: Matrix Int -> ST s (MatrixState s)
@@ -58,14 +87,14 @@ thawPositions m = do
 
 readPos :: Int -> DP s Cartesian
 readPos c = do
-    p <- view positions <$> ask
+    p <- view positions . snd <$> ask
     read p c
 
 
 
 writePos :: Int -> Cartesian -> DP s ()
 writePos c (i, j) = do
-    MatrixState p q k <- ask
+    MatrixState p q k <- snd <$> ask
     write p c (i, j)
     write q (i * k + j) c
 
@@ -73,7 +102,7 @@ writePos c (i, j) = do
 
 swapPos :: Int -> Int -> DP s ()
 swapPos i j = do
-    MatrixState p q k <- ask
+    MatrixState p q k <- snd <$> ask
     swap p i j
     (vi, vj) <- read p i
     (wi, wj) <- read p j
@@ -83,7 +112,7 @@ swapPos i j = do
 
 moveTo :: Int -> (Int, Int) -> DP s ()
 moveTo i (x, y) = do
-    MatrixState p q k <- ask
+    MatrixState p q k <- snd <$> ask
     j <- read q (x * k + y)
     if j < 0
       then do
@@ -118,23 +147,10 @@ median rs =
 
 positionMatrix :: Matrix Int -> DP s (Matrix Int)
 positionMatrix m = do
-    q <- view indices <$> ask
-    k <- view rowSize <$> ask
+    q <- view indices . snd <$> ask
+    k <- view rowSize . snd <$> ask
     v <- freeze q
     pure $ matrix (nrows m) (ncols m) $ \ (i, j) -> v ! (pred i * k + pred j)
-
-
-
-
-fastDP :: (V, E) -> Matrix Int -> ST s (Matrix Int)
-fastDP (v, e) m = do
-  p <- thawPositions m
-  flip runReaderT p $ do
-
-    for_ [0 .. length v - 1] $ globalSwap (v, e)
-    for_ [0 .. length v - 1] $ verticalSwap (v, e)
-
-    positionMatrix m
 
 
 
