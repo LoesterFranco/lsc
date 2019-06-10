@@ -122,6 +122,7 @@ fastDP (v, e) m = do
   flip runReaderT p $ do
 
     for_ [0 .. length v - 1] $ globalSwap (v, e)
+    for_ [0 .. length v - 1] $ verticalSwap (v, e)
 
     positionMatrix m
 
@@ -134,8 +135,15 @@ globalSwap (v, e) c = do
 
 
 
-verticalSwap :: (V, E) -> (Int, Int) -> Matrix Int -> Matrix Int
-verticalSwap = undefined
+verticalSwap :: (V, E) -> Int -> DP s ()
+verticalSwap (v, e) c = do
+    (i, j) <- median <$> boundingBoxes (v, e) c
+    (x, y) <- readPos c
+    if x == i
+      then moveTo c (i, j)
+      else if x < i
+        then moveTo c (succ x, y + div (j - y) (i - x))
+        else moveTo c (pred x, y + div (j - y) (x - i))
 
 
 
