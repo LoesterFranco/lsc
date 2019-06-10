@@ -16,18 +16,19 @@ import Data.Function
 import Data.List (permutations)
 import Data.Maybe
 import Data.IntSet (size, elems)
-import Data.Map (Map, assocs)
+import Data.Map (assocs)
 import qualified Data.Map as Map
 import qualified Data.Set as S
 import qualified Data.IntMap as IntMap
 import Data.STRef
 import Data.Semigroup
 import Data.Matrix hiding (toList, (!))
-import Data.Vector (Vector, fromListN, partition, (!))
+import Data.Vector (fromListN, partition, (!))
 import qualified Data.Vector as V
 import Prelude hiding (concat, lookup, read, unzip)
 
 import LSC.Improve
+import LSC.FastDP (fastDP)
 import LSC.FM as FM
 import LSC.NetGraph
 import LSC.Types hiding (thaw)
@@ -69,6 +70,11 @@ placeQuad top = do
     m <- placeMatrix  . transpose . centerColumns . transpose =<< initialMatrix top
 
     estimationsMatrix m
+    let fast dp = runST $ do
+          by <- hypergraph (top ^. gates) (top ^. nets)
+          result <- fastDP by $ view number <$> dp
+          pure $ (\ x -> maybe def id $ view gates top ^? ix x) <$> result
+    estimationsMatrix $ head $ drop 100 $ iterate fast m
 
     cells <- view stdCells <$> technology
 
