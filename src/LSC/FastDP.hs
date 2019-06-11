@@ -6,13 +6,14 @@ import Control.Lens hiding (indices)
 import Control.Monad.ST
 import Control.Monad.Reader
 import Data.Foldable
-import Data.IntSet (size, elems, delete)
+import Data.IntSet (IntSet, size, elems, delete)
+import Data.List (unfoldr)
 import Data.Matrix hiding ((!), fromList, toList)
-import Data.Vector (Vector, fromListN, (!), unzip, freeze)
-import Data.Vector.Mutable hiding (length)
+import Data.Vector (Vector, fromListN, (!), unzip, freeze, splitAt)
+import Data.Vector.Mutable hiding (length, null, splitAt)
 import System.Random.MWC
 
-import Prelude hiding (read, unzip, length)
+import Prelude hiding (read, unzip, length, splitAt)
 
 import LSC.Entropy
 import LSC.Median
@@ -64,7 +65,7 @@ fastDP (v, e) m = do
     globalSwap   (v, e) =<< rnd 
     verticalSwap (v, e) =<< rnd
     localReordering (v, e)
-  freezeDP m
+  freezeDP
   where rnd = uniformR (0, length v - 1) =<< prng
 
 
@@ -130,15 +131,13 @@ moveTo i (x, y) = do
 
 
 boundingBoxes :: (V, E) -> Int -> DP s (Vector Rectangle)
-boundingBoxes (v, e) c = do
-  fromListN (size $ v!c) <$> sequence
-    [ do
-      s <- sequence $ readPos <$> fromListN (size cs) (elems cs)
-      let (xs, ys) = unzip s
-      pure $ Rect (minimum xs) (minimum ys) (maximum xs) (maximum ys)
-    | cs <- delete c . (e!) <$> elems (v!c)
-    , size cs > 0
-    ]
+boundingBoxes (v, e) c = sequence $ box <$> net
+    where
+      net = fromListN (size (v!c)) $ filter (\cs -> size cs > 0) $ delete c . (e!) <$> elems (v!c)
+      box cs = do
+        s <- sequence $ readPos <$> fromListN (size cs) (elems cs)
+        let (xs, ys) = unzip s
+        pure $ Rect (minimum xs) (minimum ys) (maximum xs) (maximum ys)
 
 
 
@@ -150,12 +149,19 @@ median rs =
 
 
 
-freezeDP :: Matrix Int -> DP s (Matrix Int)
-freezeDP m = do
+freezeDP :: DP s (Matrix Int)
+freezeDP = do
     q <- view indices . snd <$> ask
     k <- view rowSize . snd <$> ask
     v <- freeze q
-    pure $ matrix (nrows m) (ncols m) $ \ (i, j) -> v ! (pred i * k + pred j)
+    pure $ matrix (length v `div` k) k $ \ (i, j) -> v ! (pred i * k + pred j)
+
+
+
+subVectorsOf :: Int -> Vector a -> [Vector a]
+subVectorsOf n = unfoldr go
+  where go v | null v = Nothing
+             | otherwise = Just $ splitAt n v
 
 
 
@@ -180,6 +186,7 @@ verticalSwap (v, e) c = do
 
 localReordering :: (V, E) -> DP s ()
 localReordering (v, e) = do
-    q <- view indices . snd <$> ask
+    u <- freeze . view indices . snd =<< ask
     pure ()
+
 
